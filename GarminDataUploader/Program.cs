@@ -4,31 +4,41 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace GarminDataUploader
 {
     class Program
     {
-        static void Main(string[] args)
+        static string SendRequest(string url, string method)
         {
-            // Sample code to test web service API
-            string url = "http://api.openweathermap.org/data/2.5/weather?q=Redmond,WA";
             HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
-            request.Method = "GET";
+            request.Method = method;
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             {
-                Console.WriteLine("Status = {0} {1}", (int)response.StatusCode, response.StatusDescription);
-
+                // Console.WriteLine("Status = {0} {1}", (int)response.StatusCode, response.StatusDescription);
                 using (Stream responseStream = response.GetResponseStream())
                 {
                     using (var streamReader = new StreamReader(responseStream))
                     {
-                        string responseText = streamReader.ReadToEnd();
-                        Console.WriteLine("BODY: {0}", responseText);
+                        return streamReader.ReadToEnd();                        
                     }
                 }
             }
+        }
+
+        static void Main(string[] args)
+        {
+            // Sample code to test web service API
+            string responseText = SendRequest("http://api.openweathermap.org/data/2.5/weather?q=Redmond,WA",
+                "GET");
+            
+            Console.WriteLine("BODY: {0}", responseText);
+
+            Regex weatherRegex = new Regex("\"weather\":\\[([^]]+)\\]");
+            var match = weatherRegex.Match(responseText);
+            Console.WriteLine(match.Groups[1].Value);
         }
     }
 }
