@@ -10,8 +10,7 @@ namespace GarminDataUploader
 {
     class OAuthSignin
     {
-        const string WebAuthHelperUrl = "https://psgarminuploader.azurewebsites.net/AuthRaStrava.cshtml";
-        const string RunningAheadClientId = "354e8401381b40c1960c49e83a430a8d";
+        public static readonly string WebAuthHelperUrl = "https://psgarminuploader.azurewebsites.net/AuthRaStrava.cshtml";
 
         public static string GetAccessToken(string url)
         {
@@ -61,16 +60,6 @@ namespace GarminDataUploader
             {
                 throw new Exception("access_token not found in the response: " + authResponse);
             }
-        }
-
-        public static string GetRunningAheadAccessToken()
-        {
-            string url = string.Format(
-                "https://www.runningahead.com/oauth2/authorize?response_type=code&client_id={0}&redirect_uri={1}&state=RaAuthorize",
-                RunningAheadClientId,
-                WebAuthHelperUrl);
-
-            return GetAccessToken(url);
         }
     }
 }
