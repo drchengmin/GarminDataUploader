@@ -11,6 +11,7 @@ namespace GarminDataUploader
     class Program
     {
         const string RunningAheadRegKey = "RunningAhead Access Token";
+        const string StravaRegKey = "Strava Access Token";
         const string AppRegistryKeyName = "GarminUploader";
 
         static System.DateTime GetFitTimestamp(string fileName)
@@ -104,31 +105,32 @@ namespace GarminDataUploader
             return dirs.ToArray();
         }
 
-        static string LoadAccessToken()
+        static void LoadAccessToken(out string raAccessToken, out string stravaAccessToken)
         {
+            raAccessToken = null;
+            stravaAccessToken = null;
+
             using (RegistryKey rootKey = Registry.CurrentUser.OpenSubKey("Software"))
             {
                 using (RegistryKey appKey = rootKey.OpenSubKey(AppRegistryKeyName))
                 {
-                    if (appKey == null)
+                    if (appKey != null)
                     {
-                        return string.Empty;
-                    }
-                    else
-                    {
-                        return (string)appKey.GetValue(RunningAheadRegKey);
+                        raAccessToken = (string)appKey.GetValue(RunningAheadRegKey);
+                        stravaAccessToken = (string)appKey.GetValue(StravaRegKey);
                     }
                 }
             }
         }
 
-        static void SaveAccessToken(string token)
+        static void SaveAccessToken(string raAccessToken, string stravaAccessToken)
         {
             using (RegistryKey rootKey = Registry.CurrentUser.OpenSubKey("Software", true))
             {
                 using (RegistryKey appKey = rootKey.CreateSubKey(AppRegistryKeyName))
                 {
-                    appKey.SetValue(RunningAheadRegKey, token);
+                    appKey.SetValue(RunningAheadRegKey, raAccessToken);
+                    appKey.SetValue(StravaRegKey, stravaAccessToken);
                 }
             }
         }
@@ -137,17 +139,30 @@ namespace GarminDataUploader
         static void Main(string[] args)
         {
             RunningAhead ra = new RunningAhead();
-            
-            ra.AccessToken = LoadAccessToken();
+            Strava strava = new Strava();
+
+            string raAccessToken, stravaAccessToken;
+            LoadAccessToken(out raAccessToken, out stravaAccessToken);
+            ra.AccessToken = raAccessToken;
+            strava.AccessToken = stravaAccessToken;
+
             if (string.IsNullOrEmpty(ra.AccessToken))
             {
                 ra.GetAccessToken();
             }
 
-            var lastUploadedWorkoutTime = ra.GetLastWorkoutTimeStamp();
-            Console.WriteLine("Last workout {0}", lastUploadedWorkoutTime);
+            if (string.IsNullOrEmpty(strava.AccessToken))
+            {
+                strava.GetAccessToken();
+            }
 
-            SaveAccessToken(ra.AccessToken);
+            var raLastUploadedWorkoutTime = ra.GetLastWorkoutTimeStamp();
+            Console.WriteLine("Last workout {0}", raLastUploadedWorkoutTime);
+
+            var stravaLastUploadedWorkoutTime = strava.GetLastWorkoutTimeStamp();
+            Console.WriteLine("Strava last workout {0}", stravaLastUploadedWorkoutTime);
+
+            SaveAccessToken(ra.AccessToken, strava.AccessToken);
 
             string[] directories = GetGarminDataDirectories();
 
@@ -180,21 +195,21 @@ namespace GarminDataUploader
                         }
 
                         // Skips the workout that are older than the last uploaded one
-                        if (System.IO.File.GetLastWriteTime(file) < lastUploadedWorkoutTime)
+                        if (System.IO.File.GetLastWriteTime(file) < raLastUploadedWorkoutTime)
                         {
                             continue;
                         }
 
                         if (extension == ".tcx")
                         {
-                            if (GetTcxTimestamp(file) > lastUploadedWorkoutTime)
+                            if (GetTcxTimestamp(file) > raLastUploadedWorkoutTime)
                             {
                                 ra.UploadWorkout(file);
                             }
                         }
                         else
                         {
-                            if (GetFitTimestamp(file) > lastUploadedWorkoutTime)
+                            if (GetFitTimestamp(file) > raLastUploadedWorkoutTime)
                             {
                                 ra.UploadWorkout(file);
                             }
