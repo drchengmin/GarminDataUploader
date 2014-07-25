@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Xml;
+using Dynastream.Fit;
 
 namespace GarminDataUploader
 {
@@ -12,12 +13,41 @@ namespace GarminDataUploader
         const string RunningAheadRegKey = "RunningAhead Access Token";
         const string AppRegistryKeyName = "GarminUploader";
 
-        static DateTime GetFitTimestamp(string fileName)
+        static System.DateTime GetFitTimestamp(string fileName)
         {
-            return DateTime.MinValue;
+            var fitLapTimestamps = new List<System.DateTime>();
+
+            var mesgBroadcaster = new MesgBroadcaster();
+            var decoder = new Decode();
+
+            decoder.MesgEvent += (object sender, MesgEventArgs e) =>
+            {
+                mesgBroadcaster.OnMesg(sender, e);
+            };
+
+            mesgBroadcaster.LapMesgEvent += (object sender, MesgEventArgs e) =>
+            {
+                LapMesg mesg = (LapMesg)e.mesg;
+                fitLapTimestamps.Add(mesg.GetStartTime().GetDateTime());
+            };
+
+            using (var fitSource = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+            {
+                if (decoder.IsFIT(fitSource))
+                {
+                    if (decoder.CheckIntegrity(fitSource) && decoder.Read(fitSource))
+                    {
+                        var startTime = fitLapTimestamps[0];
+                        // Converts the UTC time in FIT file to local time
+                        return TimeZoneInfo.ConvertTimeFromUtc(startTime, TimeZoneInfo.Local);
+                    }
+                }
+            }
+
+            return System.DateTime.MinValue;
         }
 
-        static DateTime GetTcxTimestamp(string fileName)
+        static System.DateTime GetTcxTimestamp(string fileName)
         {
             var doc = new XmlDocument();
             doc.Load(fileName);
@@ -29,12 +59,12 @@ namespace GarminDataUploader
             if (node != null)
             {
                 var dt = node.Attributes["StartTime"];
-                return DateTime.Parse(dt.Value);
+                return System.DateTime.Parse(dt.Value);
             }
             else
             {
                 Console.WriteLine("Failed to find the start time of the first lap in file {0}", fileName);
-                return DateTime.MinValue;
+                return System.DateTime.MinValue;
             }
         }
 
@@ -125,7 +155,7 @@ namespace GarminDataUploader
             {
                 // Uploads the specified file to RunningAhead
                 string filename = args[0];
-                if (!File.Exists(filename))
+                if (!System.IO.File.Exists(filename))
                 {
                     Console.WriteLine("File not found: " + filename);
                     return;
@@ -150,7 +180,7 @@ namespace GarminDataUploader
                         }
 
                         // Skips the workout that are older than the last uploaded one
-                        if (File.GetLastWriteTime(file) < lastUploadedWorkoutTime)
+                        if (System.IO.File.GetLastWriteTime(file) < lastUploadedWorkoutTime)
                         {
                             continue;
                         }
