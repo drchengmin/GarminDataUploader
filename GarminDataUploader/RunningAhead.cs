@@ -9,19 +9,11 @@ using System.Threading.Tasks;
 
 namespace GarminDataUploader
 {
-    class RunningAhead
+    class RunningAhead : WorkoutWebService
     {
         const string RunningAheadClientId = "354e8401381b40c1960c49e83a430a8d";
         
-        string m_accessToken;
-
-        public string AccessToken
-        {
-            get { return m_accessToken; }
-            set { m_accessToken = value; }
-        }
-
-        public void GetAccessToken()
+        public override void GetAccessToken()
         {
             string url = string.Format(
                 "https://www.runningahead.com/oauth2/authorize?response_type=code&client_id={0}&redirect_uri={1}&state=RaAuthorize",
@@ -31,7 +23,7 @@ namespace GarminDataUploader
             m_accessToken = OAuthSignin.GetAccessToken(url);
         }
 
-        public DateTime GetLastWorkoutTimeStamp()
+        public override DateTime GetLastWorkoutTimeStamp()
         {
             // Get the last workout
             string url = string.Format(
@@ -56,7 +48,7 @@ namespace GarminDataUploader
             }
         }
 
-        internal void UploadWorkout(string filename)
+        public override void UploadWorkout(string filename)
         {
             string extension = Path.GetExtension(filename);
 

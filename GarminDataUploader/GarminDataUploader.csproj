@@ -51,6 +51,7 @@
     <Compile Include="RunningAhead.cs" />
     <Compile Include="Strava.cs" />
     <Compile Include="WebHelper.cs" />
+    <Compile Include="WorkoutWebService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
