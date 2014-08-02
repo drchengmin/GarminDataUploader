@@ -10,12 +10,20 @@ namespace GarminDataUploader
 {
     class Program
     {
+        /// <summary>
+        ///     Registry key for saving the RunningAHEAD and Strava access tokens.
+        /// </summary>
         const string AppRegistryKeyName = "GarminUploader";
 
+        /// <summary>
+        ///     Gets the timestamp of the FIT file, which is the start time of the first lap
+        /// </summary>
+        /// <param name="fileName">Full path of the FIT file</param>
         static System.DateTime GetFitTimestamp(string fileName)
         {
+            // Saves the timestamp of every lap read from the file
             var fitLapTimestamps = new List<System.DateTime>();
-
+            
             var mesgBroadcaster = new MesgBroadcaster();
             var decoder = new Decode();
 
@@ -46,6 +54,10 @@ namespace GarminDataUploader
             return System.DateTime.MinValue;
         }
 
+        /// <summary>
+        ///     Gets the timestamp of the TCX file, which is the start time of the first lap
+        /// </summary>
+        /// <param name="fileName">Full path of the TCX file</param>
         static System.DateTime GetTcxTimestamp(string fileName)
         {
             var doc = new XmlDocument();
@@ -67,6 +79,10 @@ namespace GarminDataUploader
             }
         }
 
+        /// <summary>
+        ///     Gets the collection of Garmin data file store locations, including both old Garmin Communicator and
+        ///     new Garmin Express software.
+        /// </summary>
         static string[] GetGarminDataDirectories()
         {
             List<string> dirs = new List<string>();
@@ -103,6 +119,11 @@ namespace GarminDataUploader
             return dirs.ToArray();
         }
 
+        /// <summary>
+        ///     Reads the access token from the registry
+        /// </summary>
+        /// <param name="serverType">Either RunningAhead of Strava</param>
+        /// <param name="accessToken">Access token being read</param>
         static void LoadAccessToken(string serverType, out string accessToken)
         {
             accessToken = null;
@@ -119,6 +140,11 @@ namespace GarminDataUploader
             }
         }
 
+        /// <summary>
+        ///     Saves the access token to the registry
+        /// </summary>
+        /// <param name="serverType">Either RunningAhead of Strava</param>
+        /// <param name="accessToken">Access token to be saved</param>
         static void SaveAccessToken(string serverType, string accessToken)
         {
             using (RegistryKey rootKey = Registry.CurrentUser.OpenSubKey("Software", true))
@@ -130,11 +156,21 @@ namespace GarminDataUploader
             }
         }
 
+        /// <summary>
+        ///     Prints the program usage, command line arguments
+        /// </summary>
         static void PrintUsage()
         {
             Console.WriteLine("USAGE: GarminDataUploader [RA | Strava] <File name>");
+            Console.WriteLine("\r\nIf file name is specified, the program will upload the file directly.  Otherwise " +
+                "Garmin data locations will be searched, and the data files that are newer than the last uploaded one " +
+                "will be uploaded.  Then the program will monitor the directory and upload all new data files being " +
+                "detected.");
         }
 
+        /// <summary>
+        ///     Main entry
+        /// </summary>
         [STAThread]
         static void Main(string[] args)
         {
@@ -182,6 +218,8 @@ namespace GarminDataUploader
                 workoutServer.GetAccessToken();
             }
             
+            // Gets the timestamp of the last uploaded workout, so we can compare with the timestamp of the data files
+            // on the disk to know which ones should be skipped.
             var lastUploadedWorkoutTime = workoutServer.GetLastWorkoutTimeStamp();
             Console.WriteLine("Last workout {0}", lastUploadedWorkoutTime);
 
@@ -191,6 +229,8 @@ namespace GarminDataUploader
 
             if (fileToUpload != null)
             {
+                // Uploads the single workout file and exits.
+
                 if (!System.IO.File.Exists(fileToUpload))
                 {
                     Console.WriteLine("File not found: " + fileToUpload);
@@ -203,6 +243,8 @@ namespace GarminDataUploader
             }
             else
             {
+                // Searches all the directories and finds out which one has the data files
+
                 foreach (string directory in directories)
                 {
                     string[] files = null;

@@ -8,10 +8,21 @@ using System.Windows.Forms;
 
 namespace GarminDataUploader
 {
+    /// <summary>
+    ///     OAuth helper class
+    /// </summary>
     class OAuthSignin
     {
+        /// <summary>
+        ///     Helper web service in ASP.Net to process the private app info securely
+        /// </summary>
         public static readonly string WebAuthHelperUrl = "https://psgarminuploader.azurewebsites.net/AuthRaStrava.cshtml";
 
+        /// <summary>
+        ///     Accesses the specified URL to get the access token for an OAuth web service
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
         public static string GetAccessToken(string url)
         {
             int width = 800;

@@ -5,6 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace GarminDataUploader
 {
+    /// <summary>
+    ///     RunningAHEAD web service to get the timestamp of the last workout and upload new workout
+    /// </summary>
     class RunningAhead : WorkoutWebService
     {
         const string RunningAheadClientId = "354e8401381b40c1960c49e83a430a8d";

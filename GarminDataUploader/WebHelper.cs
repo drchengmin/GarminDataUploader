@@ -6,8 +6,19 @@ using System.Text;
 
 namespace GarminDataUploader
 {
+    /// <summary>
+    ///     Helper class for sending web request and performing multi-part form post
+    /// </summary>
     abstract class WebHelper
     {
+        /// <summary>
+        ///     Sends a web request to the given URL and returns the response
+        /// </summary>
+        /// <param name="url">Destination URL</param>
+        /// <param name="method">HTTP verb, GET, POST, etc.</param>
+        /// <param name="statusCode">HTTP status code of the response</param>
+        /// <param name="body">Body for the POST method</param>
+        /// <returns>Web server response</returns>
         public static string SendRequest(string url, string method, out HttpStatusCode statusCode, byte[] body = null)
         {
             HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
@@ -58,6 +69,13 @@ namespace GarminDataUploader
             stream.Write(data, 0, data.Length);
         }
 
+        /// <summary>
+        ///     Creates a byte sequence for multi-part POST body
+        /// </summary>
+        /// <param name="boundary">Boundary string of the post body</param>
+        /// <param name="props">Collection of multi-part</param>
+        /// <param name="file">File to be included in the multi-part POST body</param>
+        /// <returns>byte array that can be posted</returns>
         public static byte[] CreateMultiBody(string boundary, Dictionary<string, string> props, KeyValuePair<string, string> file)
         {
             using (var stream = new MemoryStream())
@@ -82,6 +100,7 @@ namespace GarminDataUploader
                 {
                     contentType = "application/octet-stream";
                 }
+
                 WriteStream(stream, string.Format("Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\n", file.Key, name));
                 WriteStream(stream, string.Format("Content-Type: {0}\r\n\r\n", contentType));
 
@@ -95,7 +114,15 @@ namespace GarminDataUploader
             }
         }
 
-        public static string PostMultipartWebRequest(string url, string boundary, byte[] body)
+        /// <summary>
+        ///     Posts a multi-part web request to the given URL and returns the response
+        /// </summary>
+        /// <param name="url">Destination URL</param>
+        /// <param name="boundary">Boundary of multi-part</param>
+        /// <param name="body">byte array of the POST body</param>
+        /// <param name="statusCode">Returned HTTP status code of the response</param>
+        /// <returns>Web server response</returns>
+        public static string PostMultipartWebRequest(string url, string boundary, byte[] body, out HttpStatusCode statusCode)
         {
             var request = WebRequest.Create(url);
             request.Method = "POST";
@@ -106,12 +133,13 @@ namespace GarminDataUploader
             dataStream.Write(body, 0, body.Length);
             dataStream.Close();
 
-            using (var response = request.GetResponse())
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             {
                 using (dataStream = response.GetResponseStream())
                 {
                     using (var reader = new StreamReader(dataStream))
                     {
+                        statusCode = response.StatusCode;
                         return reader.ReadToEnd();
                     }
                 }

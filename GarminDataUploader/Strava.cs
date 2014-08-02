@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace GarminDataUploader
 {
+    /// <summary>
+    ///     Strava web service to get the last workout timestamp and upload new workout
+    /// </summary>
     class Strava : WorkoutWebService
     {
         const string StravaClientId = "2183";
@@ -74,7 +77,8 @@ namespace GarminDataUploader
 
             byte[] body = WebHelper.CreateMultiBody(boundary, props, new KeyValuePair<string,string>("file", filename));
 
-            string response = WebHelper.PostMultipartWebRequest(uri, boundary, body);
+            HttpStatusCode statusCode;
+            string response = WebHelper.PostMultipartWebRequest(uri, boundary, body, out statusCode);
             Console.WriteLine("Strava response: {0}", response);
         }
     }
