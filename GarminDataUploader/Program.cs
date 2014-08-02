@@ -201,15 +201,24 @@ namespace GarminDataUploader
                     workoutServer.UploadWorkout(fileToUpload);
                 }
             }
-            else if (args.Length == 0)
+            else
             {
                 foreach (string directory in directories)
                 {
-                    string[] files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
+                    string[] files = null;
+                    try
+                    {
+                        files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        continue;
+                    }
+
                     foreach (string file in files)
                     {
                         // Skips the non-supported workout file
-                        string extension = Path.GetExtension(file);
+                        string extension = Path.GetExtension(file).ToLowerInvariant();
                         if (extension != ".tcx" && extension != ".fit")
                         {
                             continue;

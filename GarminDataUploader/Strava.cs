@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace GarminDataUploader
 {
@@ -49,9 +46,9 @@ namespace GarminDataUploader
         public override void UploadWorkout(string filename)
         {
             var name = Path.GetFileName(filename);
-            string uri = "https://www.strava.com/api/v3/uploads";
+            string uri = "http://www.strava.com/api/v3/uploads";
 
-            string ext = Path.GetExtension(filename);
+            string ext = Path.GetExtension(filename).ToLowerInvariant();
             if (ext == ".tcx")
             {
                 ext = "tcx";
@@ -75,76 +72,10 @@ namespace GarminDataUploader
             props["external_id"] = name;
             props["data_type"] = ext;
 
-            byte[] body = CreateMultiBody(boundary, props, new KeyValuePair<string,string>("file", filename));
+            byte[] body = WebHelper.CreateMultiBody(boundary, props, new KeyValuePair<string,string>("file", filename));
 
-            string response = PostMultipartWebRequest(uri, boundary, body);
+            string response = WebHelper.PostMultipartWebRequest(uri, boundary, body);
             Console.WriteLine("Strava response: {0}", response);
-        }
-
-        void WriteStream(Stream stream, string s)
-        {
-            var data = Encoding.UTF8.GetBytes(s);
-            stream.Write(data, 0, data.Length);
-        }
-
-        byte[] CreateMultiBody(string boundary, Dictionary<string, string> props, KeyValuePair<string, string> file)
-        {
-            using (var stream = new MemoryStream())
-            {
-                foreach (string key in props.Keys)
-                {
-                    WriteStream(stream, string.Format("--{0}\r\n", boundary));
-                    WriteStream(stream, string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n", key));
-                    WriteStream(stream, props[key]);
-                    WriteStream(stream, "\r\n");
-                }
-
-                WriteStream(stream, string.Format("--{0}\r\n", boundary));
-                string name = Path.GetFileName(file.Value);
-                string ext = Path.GetExtension(file.Value);
-                string contentType;
-                if (ext == ".gpx" || ext == ".tcx")
-                {
-                    contentType = "application/xml";
-                }
-                else
-                {
-                    contentType = "application/octet-stream";
-                }
-                WriteStream(stream, string.Format("Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\n", file.Key, file.Value));
-                WriteStream(stream, string.Format("Content-Type: {0}\r\n\r\n", contentType));
-
-                var data = File.ReadAllBytes(file.Value);
-                stream.Write(data, 0, data.Length);
-                WriteStream(stream, "\r\n");
-
-                WriteStream(stream, string.Format("--{0}--", boundary));
-
-                return stream.ToArray();
-            }
-        }
-
-        string PostMultipartWebRequest(string url, string boundary, byte[] body)
-        {
-            var request = WebRequest.Create(url);
-            request.Method = "POST";
-            request.ContentType = "multipart/form-data; boundary=" + boundary;
-            request.ContentLength = body.Length;
-
-            var dataStream = request.GetRequestStream();
-            dataStream.Write(body, 0, body.Length);
-            dataStream.Close();
-
-            using (var response = request.GetResponse())
-            {
-                using (dataStream = response.GetResponseStream())
-                {
-                    using (var reader = new StreamReader(dataStream))
-                    {
-                        return reader.ReadToEnd();
-                    }
-                }
-            }
         }
     }
 }

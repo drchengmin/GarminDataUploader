@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace GarminDataUploader
 {
@@ -50,7 +46,7 @@ namespace GarminDataUploader
 
         public override void UploadWorkout(string filename)
         {
-            string extension = Path.GetExtension(filename);
+            string extension = Path.GetExtension(filename).ToLowerInvariant();
 
             if (extension == ".tcx" || extension == ".fit" || extension == ".gpx")
             {
